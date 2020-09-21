@@ -11,6 +11,9 @@
 			},
 			"StoreId": {
 				"type": "string"
+			},
+			"FilePath": {
+				"type": "string"
 			}
 		},
 		"annotations": [],
@@ -20,6 +23,10 @@
 				"type": "AzureBlobStorageLocation",
 				"fileName": {
 					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat(dataset().StoreId, '/', dataset().FilePath)",
 					"type": "Expression"
 				},
 				"container": "products"

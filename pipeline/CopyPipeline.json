@@ -36,7 +36,9 @@
 						"referenceName": "SourceBlobDataset",
 						"type": "DatasetReference",
 						"parameters": {
-							"FileName": "@dataset().FileName"
+							"FileName": "@pipeline.parameters.FileName",
+							"StoreId": "@pipeline.parameters.StoreId",
+							"FilePath": "@pipeline.parameters.FilePath"
 						}
 					}
 				],
