@@ -1,0 +1,5708 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name"
+		},
+		"AzureStorageLinkedService": {
+			"type": "string"
+		},
+		"OutputSqlDataset": {
+			"type": "string"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CopyFromBlobToSql",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "products/@{concat('\"@pipeline().parameters.StoreId\"', '/', '\"@pipeline().parameters.FilePath\"')}/@{'\"@pipeline().parameters.FileName\"'}"
+							},
+							{
+								"name": "Destination",
+								"value": "dbo.product"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "*",
+									"wildcardFileName": "*.json"
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlServerSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['productId']['productId']"
+										},
+										"sink": {
+											"name": "productId",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['productName']"
+										},
+										"sink": {
+											"name": "productName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['shortDescription']"
+										},
+										"sink": {
+											"name": "shortDescription",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['longDescription']"
+										},
+										"sink": {
+											"name": "longDescription",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceBlobDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "\"@pipeline().parameters.FileName\"",
+									"StoreId": "\"@pipeline().parameters.StoreId\"",
+									"FilePath": "\"@pipeline().parameters.FilePath\""
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "OutputSqlDataset",
+								"type": "DatasetReference"
+							}
+						]
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SourceBlobDataset')]",
+				"[concat(variables('factoryId'), '/datasets/OutputSqlDataset')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SourceBlobDataset')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('AzureStorageLinkedService')]",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					},
+					"StoreId": {
+						"type": "string"
+					},
+					"FilePath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat(dataset().StoreId, '/', dataset().FilePath)",
+							"type": "Expression"
+						},
+						"container": "products"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"status": {
+							"type": "string"
+						},
+						"errors": {
+							"type": "array"
+						},
+						"header": {
+							"type": "object",
+							"properties": {
+								"headerAttributes": {
+									"type": "object",
+									"properties": {
+										"WM_BU_ID": {
+											"type": "string"
+										},
+										"WM_LOCALE_ID": {
+											"type": "string"
+										},
+										"WM_MART_ID": {
+											"type": "string"
+										},
+										"WM_VERTICAL_ID": {
+											"type": "integer"
+										}
+									}
+								}
+							}
+						},
+						"payload": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"productId": {
+										"type": "object",
+										"properties": {
+											"productId": {
+												"type": "string"
+											},
+											"USItemId": {
+												"type": "integer"
+											},
+											"legacyItemId": {
+												"type": "string"
+											},
+											"upc": {
+												"type": "string"
+											},
+											"gtin": {
+												"type": "string"
+											}
+										}
+									},
+									"entityErrors": {
+										"type": "array"
+									},
+									"product": {
+										"type": "object",
+										"properties": {
+											"productId": {
+												"type": "object",
+												"properties": {
+													"productId": {
+														"type": "string"
+													},
+													"USItemId": {
+														"type": "integer"
+													},
+													"legacyItemId": {
+														"type": "string"
+													},
+													"upc": {
+														"type": "string"
+													},
+													"gtin": {
+														"type": "string"
+													}
+												}
+											},
+											"productIdentifiers": {
+												"type": "object",
+												"properties": {
+													"GTIN": {
+														"type": "string"
+													},
+													"UPC": {
+														"type": "string"
+													}
+												}
+											},
+											"productVersion": {
+												"type": "integer"
+											},
+											"productName": {
+												"type": "string"
+											},
+											"shortDescription": {
+												"type": "string"
+											},
+											"longDescription": {
+												"type": "string"
+											},
+											"assembledProductDimensions": {
+												"type": "object",
+												"properties": {
+													"productWidth": {
+														"type": "object",
+														"properties": {
+															"unitOfMeasure": {
+																"type": "string"
+															},
+															"measurementValue": {
+																"type": "number"
+															}
+														}
+													},
+													"productHeight": {
+														"type": "object",
+														"properties": {
+															"unitOfMeasure": {
+																"type": "string"
+															},
+															"measurementValue": {
+																"type": "number"
+															}
+														}
+													}
+												}
+											},
+											"assembledProductWeight": {
+												"type": "object",
+												"properties": {
+													"unitOfMeasure": {
+														"type": "string"
+													},
+													"measurementValue": {
+														"type": "number"
+													}
+												}
+											},
+											"manufacturerProductId": {
+												"type": "string"
+											},
+											"msrp": {
+												"type": "object",
+												"properties": {
+													"currencyAmount": {
+														"type": "number"
+													},
+													"currencyUnit": {
+														"type": "string"
+													}
+												}
+											},
+											"manufacturerName": {
+												"type": "string"
+											},
+											"brand": {
+												"type": "string"
+											},
+											"productSegment": {
+												"type": "string"
+											},
+											"productSegmentName": {
+												"type": "string"
+											},
+											"productType": {
+												"type": "string"
+											},
+											"productTypeName": {
+												"type": "string"
+											},
+											"productTypeId": {
+												"type": "string"
+											},
+											"productAttributes": {
+												"type": "object",
+												"properties": {
+													"karf_sales_unit": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_shelf_path_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"all_rhids": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"alternate_shelves": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"is_variety_pack": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"trans_fat_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"electronic_ewaste_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"contains_paper_wood": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_price_per_unit": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_url_text": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"assembled_product_width": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"price_per_unit_uom": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"allergens_not_contained": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"karf_is_alcohol": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"sku": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"wmt_category": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"height": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"polyunsaturated_fat_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"total_fat_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"multipack_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_substitutions_allowed": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"price_per_unit_quantity": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"upc": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_pt_family": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"potassium_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_net_content_quantity": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"size": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"ironbank_category": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"brand_code": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"composite_wood_certification_code": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"ready_to_eat": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"capacity": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"nutrients": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"is_intangible": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"volume_unit": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"primary_shelf_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"ingredients": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"snack_cracker_type": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"char_primary_category_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"assembled_product_height": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"carbohydrate_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_maximum_order_quantity": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"vitamin_d_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"department_name": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"fiber_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"vertical_eligibility": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"properties": {
+																"type": "object",
+																"properties": {
+																	"vertical_id": {
+																		"type": "string"
+																	}
+																}
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"shelf_description": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"cholesterol_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"all_shelves": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"depth": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"dietary_fiber_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"is_controlled_substance": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"sodium_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"reporting_hierarchy_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"cpsc_regulated_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"width": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"protein_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"pesticide_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_shelf_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_category": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"batteries_included": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_department_title": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"gluten_free_claim": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"dietary_method": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"primary_shelf": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"sugar_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"chemical_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"item_class_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_ingredient_list": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"vitamin_d_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"cholesterol_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"gpt_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"fuel_restriction_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_maximum_quantity_factor": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"total_fat_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"nutritional_claim": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"karf_primary_shelf_title": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"serving_size": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"merchandise_commerce_number": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_aisle_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"segregation": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"nutrient_content_claims": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"number_of_cust_ratings": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"acceptable_temperature_range_uom": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"nutritional_data_required": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"saturated_fat_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"aerosol_indicator": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"assembled_product_weight": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_all_shelves": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"flavor": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_mercury": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"condition": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"iron_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"iron_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"offer_lifecycle_status": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"potassium_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"ideal_temperature_range_uom": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"fineline_desc": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_warnings": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"saturated_fat_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"occasion": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"calcium_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"small_parts_warning_code": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"global_product_type": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"primary_category_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_state_restrictions": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"shelf_life": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"california_residents_prop_65_warning_required": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"is_temperature_sensitive": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"added_sugar_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"calcium_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"calories_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"carbohydrates_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"monounsaturated_fat_per_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"display_status": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_department_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"gtin": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"rh_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"item_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"warnings": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"cuisine": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"sodium_daily_value_percentage": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"is_single_serving": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"servings_per_container": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"allergens": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"dietary_need": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"is_private_label_unbranded": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_type": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"has_expiration": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"average_cust_rating": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_primary_aisle_title": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"reporting_hierarchy": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													}
+												}
+											},
+											"productMarketAttributes": {
+												"type": "object",
+												"properties": {
+													"karf_sales_unit": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"brand_code": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_maximum_order_quantity": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"rh_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"alternate_shelves": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															},
+															"values": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"karf_substitutions_allowed": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"primary_category_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"vertical_eligibility": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"properties": {
+																"type": "object",
+																"properties": {
+																	"vertical_id": {
+																		"type": "string"
+																	}
+																}
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"shelf_description": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"karf_maximum_quantity_factor": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"is_private_label_unbranded": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"product_url_text": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"primary_shelf_id": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"char_primary_category_path": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"segregation": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													},
+													"display_status": {
+														"type": "object",
+														"properties": {
+															"value": {
+																"type": "string"
+															},
+															"valueRank": {
+																"type": "integer"
+															},
+															"name": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string"
+															},
+															"displayName": {
+																"type": "string"
+															},
+															"isMultiValued": {
+																"type": "boolean"
+															}
+														}
+													}
+												}
+											},
+											"productClassType": {
+												"type": "string"
+											},
+											"productPublishStatus": {
+												"type": "string"
+											},
+											"productLifecycleStatus": {
+												"type": "string"
+											},
+											"marketProductCrossReferences": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"identifierName": {
+															"type": "string"
+														},
+														"subsystemName": {
+															"type": "string"
+														},
+														"US_WMT_DOTCOM_ITEM_ID": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"complianceAttributes": {
+												"type": "object",
+												"properties": {
+													"en_US": {
+														"type": "object",
+														"properties": {
+															"attributes": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																}
+															},
+															"locationName": {
+																"type": "string"
+															}
+														}
+													}
+												}
+											},
+											"verticalEligibility": {
+												"type": "object",
+												"properties": {
+													"2": {
+														"type": "string"
+													}
+												}
+											}
+										}
+									},
+									"isConsumable": {
+										"type": "boolean"
+									},
+									"offerCount": {
+										"type": "integer"
+									},
+									"transactableOfferCount": {
+										"type": "integer"
+									},
+									"firstPubDate": {
+										"type": "integer"
+									},
+									"offerWrappers": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"offer": {
+													"type": "object",
+													"properties": {
+														"tenantId": {
+															"type": "integer"
+														},
+														"businessUnit": {
+															"type": "string"
+														},
+														"offerId": {
+															"type": "object",
+															"properties": {
+																"offerId": {
+																	"type": "string"
+																},
+																"upc": {
+																	"type": "string"
+																},
+																"wupc": {
+																	"type": "string"
+																},
+																"alternateWupcs": {
+																	"type": "array"
+																},
+																"gtin": {
+																	"type": "string"
+																},
+																"USItemId": {
+																	"type": "integer"
+																},
+																"USSellerId": {
+																	"type": "integer"
+																},
+																"legacyItemId": {
+																	"type": "string"
+																},
+																"legacySellerId": {
+																	"type": "string"
+																}
+															}
+														},
+														"productId": {
+															"type": "object",
+															"properties": {
+																"productId": {
+																	"type": "string"
+																},
+																"USItemId": {
+																	"type": "integer"
+																},
+																"legacyItemId": {
+																	"type": "string"
+																},
+																"upc": {
+																	"type": "string"
+																},
+																"wupc": {
+																	"type": "string"
+																},
+																"gtin": {
+																	"type": "string"
+																}
+															}
+														},
+														"offerType": {
+															"type": "string"
+														},
+														"sellerId": {
+															"type": "string"
+														},
+														"sellerOfferId": {
+															"type": "string"
+														},
+														"offerIdentifiers": {
+															"type": "object",
+															"properties": {
+																"GTIN": {
+																	"type": "string"
+																},
+																"UPC": {
+																	"type": "string"
+																},
+																"WUPC": {
+																	"type": "string"
+																}
+															}
+														},
+														"startDate": {
+															"type": "integer"
+														},
+														"endDate": {
+															"type": "integer"
+														},
+														"offerPublishStatus": {
+															"type": "string"
+														},
+														"offerLifecycleStatus": {
+															"type": "string"
+														},
+														"globalTaxCode": {
+															"type": "string"
+														},
+														"offerAttributes": {
+															"type": "object",
+															"properties": {
+																"isNeverOutInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isNonMemberUpchargeInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"availabilityCode": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"source_offer_types": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"channelType": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"signDescription": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"KARFMaximumOrderQuantity": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isPriceEntryPromptedInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"wm_item_num": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isAutoPublish": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"offer_mgmt_channels": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"modifiedBy": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"Item Channel Type": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"priceComparisionQtyUomCode": {
+																	"type": "object",
+																	"properties": {
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isShelfRotationInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isHealthyIncentiveInd": {
+																	"type": "object",
+																	"properties": {
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"channelTypeCode": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"vendor_no_char": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"target_publish_status": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isAssociateDiscountableInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"customerShelfLifeTolerance": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"data_source": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"oldWpid": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"Id": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"presentationUnitQty": {
+																	"type": "object",
+																	"properties": {
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"snapEligible": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isFsaEligibleInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"createdBy": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"performanceRatingTypeCode": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"shopDescription": {
+																	"type": "object",
+																	"properties": {
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"receiptDescription": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isOpeningPricePointInd": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"isReplenishable": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"signingDescription": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"is_preorder": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"street_date_type": {
+																	"type": "object",
+																	"properties": {
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																}
+															}
+														},
+														"modifiedDtmSource": {
+															"type": "integer"
+														},
+														"marketOfferCrossReferences": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"identifierName": {
+																		"type": "string"
+																	},
+																	"US_WMT_DOTCOM_SELLER_ID": {
+																		"type": "string"
+																	},
+																	"subsystemName": {
+																		"type": "string"
+																	},
+																	"US_WMT_DOTCOM_ITEM_ID": {
+																		"type": "string"
+																	}
+																}
+															}
+														},
+														"marketAttributes": {
+															"type": "object",
+															"properties": {
+																"lastUpdatedBy": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"rh_path": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"wmt_dept_num": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"wm_dept_num": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"item_class_id": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueSource": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																},
+																"data_source": {
+																	"type": "object",
+																	"properties": {
+																		"value": {
+																			"type": "string"
+																		},
+																		"valueRank": {
+																			"type": "integer"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"type": {
+																			"type": "string"
+																		},
+																		"displayName": {
+																			"type": "string"
+																		},
+																		"isMultiValued": {
+																			"type": "boolean"
+																		}
+																	}
+																}
+															}
+														},
+														"offerRank": {
+															"type": "integer"
+														},
+														"offerLogistics": {
+															"type": "object",
+															"properties": {
+																"productShipPackageMeasuresList": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"productDimensions": {
+																				"type": "object",
+																				"properties": {
+																					"productLength": {
+																						"type": "object",
+																						"properties": {
+																							"unitOfMeasure": {
+																								"type": "string"
+																							},
+																							"measurementValue": {
+																								"type": "number"
+																							}
+																						}
+																					},
+																					"productWidth": {
+																						"type": "object",
+																						"properties": {
+																							"unitOfMeasure": {
+																								"type": "string"
+																							},
+																							"measurementValue": {
+																								"type": "number"
+																							}
+																						}
+																					},
+																					"productHeight": {
+																						"type": "object",
+																						"properties": {
+																							"unitOfMeasure": {
+																								"type": "string"
+																							},
+																							"measurementValue": {
+																								"type": "integer"
+																							}
+																						}
+																					}
+																				}
+																			},
+																			"productWeight": {
+																				"type": "object",
+																				"properties": {
+																					"unitOfMeasure": {
+																						"type": "string"
+																					},
+																					"measurementValue": {
+																						"type": "integer"
+																					}
+																				}
+																			},
+																			"packageNumber": {
+																				"type": "integer"
+																			}
+																		}
+																	}
+																},
+																"mustShipAlone": {
+																	"type": "boolean"
+																},
+																"shipAsIs": {
+																	"type": "boolean"
+																},
+																"hazardMaterial": {
+																	"type": "boolean"
+																},
+																"ormd": {
+																	"type": "boolean"
+																},
+																"storePickable": {
+																	"type": "boolean"
+																},
+																"airShippable": {
+																	"type": "boolean"
+																},
+																"perishable": {
+																	"type": "boolean"
+																},
+																"numberOfBoxes": {
+																	"type": "integer"
+																},
+																"giftOpts": {
+																	"type": "object"
+																}
+															}
+														},
+														"streetDateDisplayable": {
+															"type": "boolean"
+														},
+														"publishStatusChangeDtm": {
+															"type": "integer"
+														},
+														"lifecycleStatusChangeDtm": {
+															"type": "integer"
+														},
+														"createdBy": {
+															"type": "string"
+														},
+														"modifiedBy": {
+															"type": "string"
+														},
+														"createdDtm": {
+															"type": "integer"
+														},
+														"modifiedDtm": {
+															"type": "integer"
+														},
+														"offerPurchaseType": {
+															"type": "object",
+															"properties": {
+																"purchaseOption": {
+																	"type": "string"
+																},
+																"conditionType": {
+																	"type": "string"
+																}
+															}
+														},
+														"overridableOfferType": {
+															"type": "object",
+															"properties": {
+																"isOverridden": {
+																	"type": "boolean"
+																},
+																"computedValue": {
+																	"type": "string"
+																}
+															}
+														},
+														"martId": {
+															"type": "string"
+														}
+													}
+												},
+												"seller": {
+													"type": "object",
+													"properties": {
+														"sellerId": {
+															"type": "string"
+														},
+														"catalogSellerId": {
+															"type": "integer"
+														},
+														"partnerName": {
+															"type": "string"
+														},
+														"partnerDisplayName": {
+															"type": "string"
+														},
+														"address1": {
+															"type": "string"
+														},
+														"city": {
+															"type": "string"
+														},
+														"state": {
+															"type": "string"
+														},
+														"zip": {
+															"type": "string"
+														},
+														"createdDtm": {
+															"type": "integer"
+														},
+														"modifiedDtm": {
+															"type": "integer"
+														},
+														"sellerType": {
+															"type": "string"
+														},
+														"sellerTaxCodes": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"taxId": {
+																		"type": "integer"
+																	},
+																	"taxCode": {
+																		"type": "string"
+																	},
+																	"sellerId": {
+																		"type": "integer"
+																	},
+																	"tweTaxCode": {
+																		"type": "string"
+																	},
+																	"s2sFlag": {
+																		"type": "string"
+																	},
+																	"shipMethod": {
+																		"type": "string"
+																	}
+																}
+															}
+														},
+														"model": {
+															"type": "object",
+															"properties": {
+																"sellerId": {
+																	"type": "integer"
+																}
+															}
+														}
+													}
+												},
+												"storeFronts": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"storeFrontId": {
+																"type": "object",
+																"properties": {
+																	"storeUUID": {
+																		"type": "string"
+																	},
+																	"storeId": {
+																		"type": "string"
+																	},
+																	"preferred": {
+																		"type": "boolean"
+																	},
+																	"onlineStoreFront": {
+																		"type": "boolean"
+																	},
+																	"USStoreId": {
+																		"type": "integer"
+																	}
+																}
+															},
+															"storeFrontType": {
+																"type": "string"
+															},
+															"offerPricing": {
+																"type": "object",
+																"properties": {
+																	"offerPriceId": {
+																		"type": "object",
+																		"properties": {
+																			"offerId": {
+																				"type": "object",
+																				"properties": {
+																					"offerId": {
+																						"type": "string"
+																					},
+																					"upc": {
+																						"type": "string"
+																					},
+																					"wupc": {
+																						"type": "string"
+																					},
+																					"alternateWupcs": {
+																						"type": "array"
+																					},
+																					"gtin": {
+																						"type": "string"
+																					},
+																					"USItemId": {
+																						"type": "integer"
+																					},
+																					"USSellerId": {
+																						"type": "integer"
+																					},
+																					"legacyItemId": {
+																						"type": "string"
+																					},
+																					"legacySellerId": {
+																						"type": "string"
+																					}
+																				}
+																			},
+																			"storeFrontId": {
+																				"type": "object",
+																				"properties": {
+																					"storeUUID": {
+																						"type": "string"
+																					},
+																					"storeId": {
+																						"type": "string"
+																					},
+																					"preferred": {
+																						"type": "boolean"
+																					},
+																					"onlineStoreFront": {
+																						"type": "boolean"
+																					},
+																					"USStoreId": {
+																						"type": "integer"
+																					}
+																				}
+																			},
+																			"groceryEligible": {
+																				"type": "boolean"
+																			}
+																		}
+																	},
+																	"sellerInfo": {
+																		"type": "object",
+																		"properties": {
+																			"sellerId": {
+																				"type": "string"
+																			},
+																			"sellerType": {
+																				"type": "string"
+																			},
+																			"partnerId": {
+																				"type": "string"
+																			}
+																		}
+																	},
+																	"productInfo": {
+																		"type": "object",
+																		"properties": {
+																			"productId": {
+																				"type": "string"
+																			},
+																			"productType": {
+																				"type": "string"
+																			},
+																			"itemClassId": {
+																				"type": "string"
+																			},
+																			"itemId": {
+																				"type": "string"
+																			},
+																			"salesUnit": {
+																				"type": "string"
+																			},
+																			"maxQuantityFactor": {
+																				"type": "number"
+																			},
+																			"pricePerUnitQuantity": {
+																				"type": "number"
+																			},
+																			"pricePerUnitUom": {
+																				"type": "string"
+																			}
+																		}
+																	},
+																	"itemClassId": {
+																		"type": "integer"
+																	},
+																	"associateDiscount": {
+																		"type": "object",
+																		"properties": {
+																			"useOverride": {
+																				"type": "boolean"
+																			},
+																			"computedValue": {
+																				"type": "boolean"
+																			}
+																		}
+																	},
+																	"sourceTimestamp": {
+																		"type": "integer"
+																	},
+																	"entityErrors": {
+																		"type": "array"
+																	},
+																	"storefrontPricingList": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"currentPrice": {
+																					"type": "object",
+																					"properties": {
+																						"unitValue": {
+																							"type": "object",
+																							"properties": {
+																								"currencyAmount": {
+																									"type": "number"
+																								},
+																								"currencyUnit": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"currentValue": {
+																							"type": "object",
+																							"properties": {
+																								"currencyAmount": {
+																									"type": "number"
+																								},
+																								"currencyUnit": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"uomtype": {
+																							"type": "string"
+																						}
+																					}
+																				},
+																				"currentPriceType": {
+																					"type": "string"
+																				},
+																				"isPickUpDiscountEligible": {
+																					"type": "boolean"
+																				},
+																				"priceDisplayCodes": {
+																					"type": "object",
+																					"properties": {
+																						"isEligibleForAssociateDiscount": {
+																							"type": "boolean"
+																						},
+																						"unitPriceDisplayCondition": {
+																							"type": "string"
+																						},
+																						"pricePerUnitUom": {
+																							"type": "string"
+																						}
+																					}
+																				},
+																				"effectiveDate": {
+																					"type": "integer"
+																				},
+																				"expirationDate": {
+																					"type": "integer"
+																				},
+																				"additionalAttributes": {
+																					"type": "object"
+																				}
+																			}
+																		}
+																	}
+																}
+															},
+															"isStorePUTEligible": {
+																"type": "boolean"
+															},
+															"offerFulfillmentOptionWrappers": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"fulfillmentOption": {
+																			"type": "string"
+																		},
+																		"availabilityStatus": {
+																			"type": "string"
+																		},
+																		"availableQuantity": {
+																			"type": "number"
+																		},
+																		"shipMethodSlaWrappers": {
+																			"type": "array",
+																			"items": {
+																				"type": "object",
+																				"properties": {
+																					"slaTier": {
+																						"type": "string"
+																					},
+																					"availabilityStatus": {
+																						"type": "string"
+																					},
+																					"quantity": {
+																						"type": "number"
+																					},
+																					"shipMethodWrappers": {
+																						"type": "array",
+																						"items": {
+																							"type": "object",
+																							"properties": {
+																								"shipMethod": {
+																									"type": "string"
+																								},
+																								"shippingProgramFlags": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"label": {
+																												"type": "string"
+																											},
+																											"attributeName": {
+																												"type": "string"
+																											},
+																											"attributeValue": {
+																												"type": "object",
+																												"properties": {
+																													"currencyAmount": {
+																														"type": "number"
+																													},
+																													"currencyUnit": {
+																														"type": "string"
+																													}
+																												}
+																											}
+																										}
+																									}
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		},
+																		"offerShippingMethodWrappers": {
+																			"type": "array",
+																			"items": {
+																				"type": "object",
+																				"properties": {
+																					"shipMethod": {
+																						"type": "string"
+																					},
+																					"shippingProgramFlags": {
+																						"type": "array",
+																						"items": {
+																							"type": "object",
+																							"properties": {
+																								"label": {
+																									"type": "string"
+																								},
+																								"attributeName": {
+																									"type": "string"
+																								},
+																								"attributeValue": {
+																									"type": "object",
+																									"properties": {
+																										"currencyAmount": {
+																											"type": "number"
+																										},
+																										"currencyUnit": {
+																											"type": "string"
+																										}
+																									}
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		},
+																		"subChannels": {
+																			"type": "array"
+																		}
+																	}
+																}
+															},
+															"canAddToCart": {
+																"type": "boolean"
+															}
+														}
+													}
+												},
+												"shipSizeCode": {
+													"type": "string"
+												},
+												"offerRollupPublishStatus": {
+													"type": "string"
+												},
+												"rollupReasonCodes": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"isOfferPUTEligible": {
+													"type": "boolean"
+												},
+												"isInternationalShippingEligible": {
+													"type": "boolean"
+												},
+												"isPickupDiscountEligible": {
+													"type": "boolean"
+												},
+												"isPickupDiscountForStore": {
+													"type": "boolean"
+												},
+												"isSourcePickupDiscountEligible": {
+													"type": "boolean"
+												},
+												"shippingSla": {
+													"type": "object",
+													"properties": {
+														"slaTiers": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"geoItemClassification": {
+															"type": "string"
+														}
+													}
+												},
+												"isWfsEnabled": {
+													"type": "boolean"
+												},
+												"shippingTier": {
+													"type": "string"
+												},
+												"shippingSlaDetail": {
+													"type": "object",
+													"properties": {
+														"slaTier": {
+															"type": "string"
+														},
+														"geoItemClassification": {
+															"type": "string"
+														}
+													}
+												},
+												"isTwoDayShippingEligible": {
+													"type": "boolean"
+												},
+												"isShippingPassEligible": {
+													"type": "boolean"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OutputSqlDataset')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('OutputSqlDataset')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [
+					{
+						"name": "ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "productName",
+						"type": "varchar"
+					},
+					{
+						"name": "shortDescription",
+						"type": "varchar"
+					},
+					{
+						"name": "longDescription",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "product"
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
