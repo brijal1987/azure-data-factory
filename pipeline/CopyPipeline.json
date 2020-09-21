@@ -19,7 +19,8 @@
 						"type": "JsonSource",
 						"storeSettings": {
 							"type": "AzureBlobStorageReadSettings",
-							"recursive": true
+							"recursive": true,
+							"wildcardFileName": "@dataset().FileName"
 						},
 						"formatSettings": {
 							"type": "JsonReadSettings"
@@ -33,7 +34,10 @@
 				"inputs": [
 					{
 						"referenceName": "SourceBlobDataset",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": "@dataset().FileName"
+						}
 					}
 				],
 				"outputs": [
