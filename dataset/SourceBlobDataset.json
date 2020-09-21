@@ -7,16 +7,13 @@
 		},
 		"parameters": {
 			"FileName": {
-				"type": "string",
-				"defaultValue": "202009181622160189.json"
+				"type": "string"
 			},
 			"StoreId": {
-				"type": "string",
-				"defaultValue": "1"
+				"type": "string"
 			},
 			"FilePath": {
-				"type": "string",
-				"defaultValue": "20200918"
+				"type": "string"
 			}
 		},
 		"annotations": [],
