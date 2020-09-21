@@ -7,13 +7,16 @@
 		},
 		"parameters": {
 			"FileName": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "1"
 			},
 			"StoreId": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "1"
 			},
 			"FilePath": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "1"
 			}
 		},
 		"annotations": [],
