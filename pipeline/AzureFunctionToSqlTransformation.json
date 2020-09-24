@@ -16,7 +16,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"functionName": "LocalFunctionProject",
+					"functionName": "HttpExample",
 					"method": "POST",
 					"body": {
 						"ProductId": "122XXEE",
