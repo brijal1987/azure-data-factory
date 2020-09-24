@@ -6,75 +6,12 @@
 			"type": "string",
 			"metadata": "Data Factory name",
 			"defaultValue": "projectarcher-dev-datafactory"
-		},
-		"AzureFunctionActivity_functionKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'functionKey' of 'AzureFunctionActivity'"
-		},
-		"AzureStorageLinkedService_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'AzureStorageLinkedService'"
-		},
-		"OutputSqlDataset_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'OutputSqlDataset'"
-		},
-		"AzureFunctionActivity_properties_typeProperties_functionAppUrl": {
-			"type": "string",
-			"defaultValue": "https://azurefunctiontransofrmdata.azurewebsites.net"
-		},
-		"trigger1_properties_typeProperties_scope": {
-			"type": "string",
-			"defaultValue": "/subscriptions/757515e2-2af1-48dc-ae9a-d2893609f8a4/resourceGroups/projectarcher-dev/providers/Microsoft.Storage/storageAccounts/archerblobstorage"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('factoryName'), '/AzureFunctionActivity')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureFunction",
-				"typeProperties": {
-					"functionAppUrl": "[parameters('AzureFunctionActivity_properties_typeProperties_functionAppUrl')]",
-					"functionKey": {
-						"type": "SecureString",
-						"value": "[parameters('AzureFunctionActivity_functionKey')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/AzureStorageLinkedService')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobStorage",
-				"typeProperties": {
-					"connectionString": "[parameters('AzureStorageLinkedService_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/OutputSqlDataset')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "SqlServer",
-				"typeProperties": {
-					"connectionString": "[parameters('OutputSqlDataset_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureFunctionToSqlTransformation')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
@@ -97,7 +34,6 @@
 						"typeProperties": {
 							"functionName": "FunctionTriggerProductData",
 							"method": "POST",
-							"headers": {},
 							"body": {
 								"name": "Azure"
 							}
@@ -115,42 +51,98 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/OutputSqlDataset')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
+			"name": "[concat(parameters('factoryName'), '/CopyPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"linkedServiceName": {
-					"referenceName": "OutputSqlDataset",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "SqlServerTable",
-				"schema": [
+				"activities": [
 					{
-						"name": "ID",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "productName",
-						"type": "varchar"
-					},
-					{
-						"name": "shortDescription",
-						"type": "varchar"
-					},
-					{
-						"name": "longDescription",
-						"type": "varchar"
+						"name": "CopyFromBlobToSql",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlServerSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['productId']['productId']"
+										},
+										"sink": {
+											"name": "productId",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['productName']"
+										},
+										"sink": {
+											"name": "productName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['shortDescription']"
+										},
+										"sink": {
+											"name": "shortDescription",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['payload'][0]['product']['longDescription']"
+										},
+										"sink": {
+											"name": "longDescription",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceBlobDataset",
+								"type": "DatasetReference"
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "OutputSqlDataset",
+								"type": "DatasetReference"
+							}
+						]
 					}
 				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "product"
-				}
+				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/OutputSqlDataset')]"
+				"[concat(variables('factoryId'), '/datasets/SourceBlobDataset')]"
 			]
 		},
 		{
@@ -5671,107 +5663,24 @@
 					}
 				}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureStorageLinkedService')]"
-			]
+			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/CopyPipeline')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/AzureFunctionActivity')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"activities": [
-					{
-						"name": "CopyFromBlobToSql",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "JsonSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true
-								},
-								"formatSettings": {
-									"type": "JsonReadSettings"
-								}
-							},
-							"sink": {
-								"type": "SqlServerSink"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"path": "$['payload'][0]['product']['productId']['productId']"
-										},
-										"sink": {
-											"name": "productId",
-											"type": "String"
-										}
-									},
-									{
-										"source": {
-											"path": "$['payload'][0]['product']['productName']"
-										},
-										"sink": {
-											"name": "productName",
-											"type": "String"
-										}
-									},
-									{
-										"source": {
-											"path": "$['payload'][0]['product']['shortDescription']"
-										},
-										"sink": {
-											"name": "shortDescription",
-											"type": "String"
-										}
-									},
-									{
-										"source": {
-											"path": "$['payload'][0]['product']['longDescription']"
-										},
-										"sink": {
-											"name": "longDescription",
-											"type": "String"
-										}
-									}
-								]
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "SourceBlobDataset",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "OutputSqlDataset",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
+				"annotations": [],
+				"type": "AzureFunction",
+				"typeProperties": {
+					"functionAppUrl": "https://azurefunctiontransofrmdata.azurewebsites.net",
+					"functionKey": {
+						"type": "SecureString",
+						"value": "**********"
 					}
-				],
-				"annotations": []
+				}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/SourceBlobDataset')]",
-				"[concat(variables('factoryId'), '/datasets/OutputSqlDataset')]"
-			]
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/trigger1')]",
@@ -5785,8 +5694,7 @@
 						"pipelineReference": {
 							"referenceName": "CopyPipeline",
 							"type": "PipelineReference"
-						},
-						"parameters": {}
+						}
 					}
 				],
 				"type": "BlobEventsTrigger",
@@ -5794,7 +5702,7 @@
 					"blobPathBeginsWith": "/products/blobs/",
 					"blobPathEndsWith": ".json",
 					"ignoreEmptyBlobs": true,
-					"scope": "[parameters('trigger1_properties_typeProperties_scope')]",
+					"scope": "/subscriptions/757515e2-2af1-48dc-ae9a-d2893609f8a4/resourceGroups/projectarcher-dev/providers/Microsoft.Storage/storageAccounts/archerblobstorage",
 					"events": [
 						"Microsoft.Storage.BlobCreated"
 					]

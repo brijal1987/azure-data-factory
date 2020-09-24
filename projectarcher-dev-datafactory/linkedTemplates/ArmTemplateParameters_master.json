@@ -5,11 +5,20 @@
 		"factoryName": {
 			"value": "projectarcher-dev-datafactory"
 		},
+		"AzureFunctionActivity_functionKey": {
+			"value": ""
+		},
 		"AzureStorageLinkedService_connectionString": {
 			"value": ""
 		},
 		"OutputSqlDataset_connectionString": {
 			"value": ""
+		},
+		"AzureFunctionActivity_properties_typeProperties_functionAppUrl": {
+			"value": "https://azurefunctiontransofrmdata.azurewebsites.net"
+		},
+		"trigger1_properties_typeProperties_scope": {
+			"value": "/subscriptions/757515e2-2af1-48dc-ae9a-d2893609f8a4/resourceGroups/projectarcher-dev/providers/Microsoft.Storage/storageAccounts/archerblobstorage"
 		},
 		"containerUri": {
 			"value": ""
