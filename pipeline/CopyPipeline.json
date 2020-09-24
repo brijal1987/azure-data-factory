@@ -13,23 +13,13 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": [
-					{
-						"name": "Source",
-						"value": "products/@{concat('\"@pipeline().parameters.StoreId\"', '/', '\"@pipeline().parameters.FilePath\"')}/@{'\"@pipeline().parameters.FileName\"'}"
-					},
-					{
-						"name": "Destination",
-						"value": "dbo.product"
-					}
-				],
+				"userProperties": [],
 				"typeProperties": {
 					"source": {
 						"type": "JsonSource",
 						"storeSettings": {
 							"type": "AzureBlobStorageReadSettings",
-							"recursive": true,
-							"wildcardFileName": "*.json"
+							"recursive": true
 						},
 						"formatSettings": {
 							"type": "JsonReadSettings"
