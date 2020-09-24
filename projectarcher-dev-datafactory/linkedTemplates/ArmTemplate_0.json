@@ -99,9 +99,9 @@
 							"method": "POST",
 							"headers": {},
 							"body": {
-								"ProductId": "122XXEE",
-								"Rating": "Rating",
-								"Tag": "Tag",
+								"ProductId": "ABCDEF123",
+								"Rating": "4*",
+								"Tag": "Tag1, Tag2",
 								"Ingredient": "Ingredient",
 								"Diet": "Diet",
 								"Nutrition": "Nutrition"
