@@ -21,7 +21,7 @@
 		},
 		"AzureFunctionActivity_properties_typeProperties_functionAppUrl": {
 			"type": "string",
-			"defaultValue": "https://azurefunctiontransofrmdata.azurewebsites.net"
+			"defaultValue": "https://localfunctionproject.azurewebsites.net"
 		},
 		"trigger1_properties_typeProperties_scope": {
 			"type": "string",
@@ -95,11 +95,16 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"functionName": "FunctionTriggerProductData",
+							"functionName": "HttpExample",
 							"method": "POST",
 							"headers": {},
 							"body": {
-								"name": "Azure"
+								"ProductId": "122XXEE",
+								"Rating": "Rating",
+								"Tag": "Tag",
+								"Ingredient": "Ingredient",
+								"Diet": "Diet",
+								"Nutrition": "Nutrition"
 							}
 						},
 						"linkedServiceName": {
