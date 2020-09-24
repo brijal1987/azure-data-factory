@@ -16,10 +16,15 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"functionName": "FunctionTriggerProductData",
+					"functionName": "LocalFunctionProject",
 					"method": "POST",
 					"body": {
-						"name": "Azure"
+						"ProductId": "122XXEE",
+						"Rating": "Rating",
+						"Tag": "Tag",
+						"Ingredient": "Ingredient",
+						"Diet": "Diet",
+						"Nutrition": "Nutrition"
 					}
 				},
 				"linkedServiceName": {
