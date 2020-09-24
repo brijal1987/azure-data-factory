@@ -5,30 +5,12 @@
 			"referenceName": "AzureStorageLinkedService",
 			"type": "LinkedServiceReference"
 		},
-		"parameters": {
-			"FileName": {
-				"type": "string"
-			},
-			"StoreId": {
-				"type": "string"
-			},
-			"FilePath": {
-				"type": "string"
-			}
-		},
 		"annotations": [],
 		"type": "Json",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": {
-					"value": "@dataset().FileName",
-					"type": "Expression"
-				},
-				"folderPath": {
-					"value": "@concat(dataset().StoreId, '/', dataset().FilePath)",
-					"type": "Expression"
-				},
+				"fileName": "products.json",
 				"container": "products"
 			}
 		},

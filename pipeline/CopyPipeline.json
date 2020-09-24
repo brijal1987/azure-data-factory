@@ -29,7 +29,6 @@
 						"storeSettings": {
 							"type": "AzureBlobStorageReadSettings",
 							"recursive": true,
-							"wildcardFolderPath": "*",
 							"wildcardFileName": "*.json"
 						},
 						"formatSettings": {
@@ -44,12 +43,7 @@
 				"inputs": [
 					{
 						"referenceName": "SourceBlobDataset",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileName": "\"@pipeline().parameters.FileName\"",
-							"StoreId": "\"@pipeline().parameters.StoreId\"",
-							"FilePath": "\"@pipeline().parameters.FilePath\""
-						}
+						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
