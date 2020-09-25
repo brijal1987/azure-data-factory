@@ -56,7 +56,7 @@
 							"method": "POST",
 							"headers": {},
 							"body": {
-								"ProductId": "ABCDEF123",
+								"ItemId": "ABCDEF123",
 								"Rating": "4*",
 								"Tag": "Tag1, Tag2",
 								"Ingredient": "Ingredient",
