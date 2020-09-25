@@ -19,7 +19,7 @@
 					"functionName": "HttpExample",
 					"method": "POST",
 					"body": {
-						"ItemId": "ABCDEF123",
+						"ItemId": "1234",
 						"Rating": "4*",
 						"Tag": "Tag1, Tag2",
 						"Ingredient": "Ingredient",
